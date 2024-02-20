@@ -1,4 +1,4 @@
-package subsystems
+package cgroup
 
 import (
 	"bufio"
@@ -6,7 +6,6 @@ import (
 	"log"
 	"os"
 	"path"
-
 
 	"strings"
 )
@@ -41,8 +40,6 @@ var (
 	}
 )
 
-
-
 // FindCgroupMountPoint 获取cgroup挂载点
 func FindCgroupMountPoint(subsystem string) string {
 	file, err := os.Open("/proc/self/mountinfo")
@@ -57,7 +54,6 @@ func FindCgroupMountPoint(subsystem string) string {
 		fileds := strings.Split(txt, " ")
 		for _, opt := range strings.Split(fileds[len(fileds)-1], ",") {
 			if opt == subsystem {
-				log.Println("the mount point : ",fileds[4])
 				return fileds[4]
 			}
 		}
@@ -67,6 +63,7 @@ func FindCgroupMountPoint(subsystem string) string {
 	}
 	return ""
 }
+
 // GetCgroupAbsolutePath 获取cgroup绝对路径
 // 找到对应subsystem挂载的 hierarchy 相对路径对应的 cgroup 在虚拟文件系统中的路径,
 // 然后通过这个目录的读写去操作 cgroup
@@ -74,18 +71,15 @@ func FindCgroupMountPoint(subsystem string) string {
 // option 中加上 subsystem，代表挂载 的 subsystem 类型 ,
 // 这样就可 以在 mountinfo 中找到对应的 subsystem 的挂载目录了 ，比如 memory。
 func GetCgroupAbsolutePath(subsys string, cgroupPath string, autoCreate bool) (string, error) {
-	 cgroupRoot := FindCgroupMountPoint(subsys)
-	log.Println("the mount point is :",cgroupRoot)
+	cgroupRoot := FindCgroupMountPoint(subsys)
 	if _, err := os.Stat(path.Join(cgroupRoot, cgroupPath)); err == nil || (autoCreate && os.IsNotExist(err)) {
 		if os.IsNotExist(err) {
 			err := os.Mkdir(path.Join(cgroupRoot, cgroupPath), 0755)
 			if err != nil {
 				return "", errors.New("cgroup path error :" + err.Error())
 			}
-			log.Println("the absolute path is :",path.Join(cgroupRoot, cgroupPath))
 			return path.Join(cgroupRoot, cgroupPath), nil
 		}
-		log.Println("the absolute path is :",path.Join(cgroupRoot, cgroupPath))
 		return path.Join(cgroupRoot, cgroupPath), nil
 
 	} else {

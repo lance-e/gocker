@@ -6,7 +6,7 @@ package cmd
 import (
 	"fmt"
 	"gocker/container"
-	"gocker/subsystems"
+	"gocker/cgroup"
 
 	"github.com/spf13/cobra"
 )
@@ -15,7 +15,7 @@ var (
 	tty bool
 	t bool
 	i bool
-	resource subsystems.ResouceConfig
+	resource cgroup.ResouceConfig
 )
 
 // runCmd represents the run command

@@ -114,8 +114,7 @@ func GetCgroupAbsolutePath(subsys string, cgroupPath string, autoCreate bool) (s
 
 }
 ~~~
-
-找到了cgroup挂载的绝对路径，就可以通过操作文件来进行资源限制，这里以memory为例：
+找到了cgroup挂载的绝对路径，就可以通过操作文件来进行资源限制,这里以memory为例：
 通过set方法，将设置的内存资源限制写入memory.limit_in_bytes文件中；
 通过apply方法，把pid写入到tasks，目标进程加入到该cgroup中；
 通过remove方法，则是取消该cgroup
@@ -163,11 +162,25 @@ func (m *MemorySubsystem) Remove(cgroupPath string) error {
 }
 ~~~
 
+### 二.构建镜像：
+补充知识：
+rootfs(root filesystem):
+- rootfs是分层文件树的顶端，包含对系统运行至关重要的文件和目录，包括设备目录和用于启动系统的程序。系统启动时，初始化进程会将rootfs挂载到/目录，之后再挂载其他文件系统到其子目录。
 
+mount namespace 工作原理：
+- 每个进程可以创建属于自己的 mount table，但前提是必须先复制父进程的 mount table，之后再调用 mount 发生的更改都只会影响当前进程的 mount table
+  
+pivot_root系统调用介绍：
+- pivot_root 是由 Linux 提供的一种系统调用，它能够将一个 mount namespace 中的所有进程的根目录和当前工作目录切换到一个新的目录。pivot_root 的主要用途是在系统启动时，先挂载一个临时的 rootfs 完成特定功能，然后再切换到真正的 rootfs。
+- 可以将当前root文件系统移动到put_old文件夹中，然后将new_root成为新的root文件系统(注：new_root和put_old不能同时存在当前root的同一个文件系统中)
 
+pivot_root与chroot区别：
+- chroot只改变某个进程的根目录，系统的其他部分依旧运行于旧的root目录。 pivot_root把整个系统切换到一个新的root目录中，然后去掉对之前rootfs的依赖，以便于可以umount之前的文件系统。
 
+##
+to be continue...
 
-###### 参考文档：
+## 参考文档：
 https://blog.csdn.net/qq_53267860/article/details/131729601
 
 https://blog.csdn.net/qq_31960623/article/details/120242671
@@ -181,3 +194,5 @@ https://tech.meituan.com/2015/03/31/cgroups.html
 https://www.cnblogs.com/charlieroro/p/10281469.html
 
 https://access.redhat.com/documentation/zh-cn/red_hat_enterprise_linux/7/html/resource_management_guide/index
+
+https://waynerv.com/posts/container-fundamentals-filesystem-isolation-and-sharing/

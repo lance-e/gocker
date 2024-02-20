@@ -1,8 +1,8 @@
 package container
 
 import (
-
-	"gocker/subsystems"
+	
+	"gocker/cgroup"
 	"io"
 	"log"
 	"os"
@@ -11,23 +11,22 @@ import (
 	"syscall"
 )
 
-func Run(tty bool, command []string, resource *subsystems.ResouceConfig) {
+func Run(tty bool, command []string, resource *cgroup.ResouceConfig) {
 	//原本启动init进程是通过在参数中添加一个init，来进行init命令，改成通过匿名管道进行父子进程间通信
 	cmd, write := newparentProcess(tty)
+	
 	if err := cmd.Start(); err != nil {
 		log.Fatal(err.Error())
 	}
 	//新建一个cgroup manager来进行资源管理
-	manager := subsystems.NewCgroupManager("gocker-cgroup")
+	manager := cgroup.NewCgroupManager("gocker-cgroup")
 	defer manager.Destory()
 	manager.Set(resource)
 	manager.Apply(cmd.Process.Pid)
-	sendInitCommand(command, write)
-	cmd.Wait()
-	os.Exit(-1)
-
+	sendInitCommand(command, write) 
+	cmd.Wait() 
 }
-func NewPipe() (*os.File, *os.File, error) {
+func NewPipe() (*os.File, *os.File, error){
 	read, write, err := os.Pipe()
 	if err != nil {
 		return nil, nil, err
@@ -44,6 +43,7 @@ func readUserCommand() []string {
 		log.Println("init read pipe failed,error :" + err.Error())
 		return nil
 	}
+	log.Println("this is the data of pipe to translate :",string(data))
 	return strings.Split(string(data), " ")
 }
 func sendInitCommand(cmdArray []string, write *os.File) {
@@ -81,6 +81,7 @@ func newparentProcess(tty bool) (*exec.Cmd, *os.File) {
 	}
 	//!!!在这里传入管道读取端的句柄
 	cmd.ExtraFiles = []*os.File{read} //该属性的意思是外带着其他的文件句柄来创建子进程,因为一个进程默认带着三个文件描述符，stdin，stdout，stderr
+	cmd.Dir = "/home/longxu/busybox" //使用cmd.Dir设置初始化后的工作目录
 	return cmd, write
 }
 
