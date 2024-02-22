@@ -26,7 +26,7 @@ func (c *CpusetSubsystem) Set(cgroupPath string, resource *ResouceConfig) error 
 		if err = os.WriteFile(path.Join(absolutePath, "cpuset.cpus"), []byte(resource.CpuSet), 0644); err != nil {
 			return errors.New("cpuset set falied,error:" + err.Error())
 		}
-		if err = os.WriteFile(path.Join(absolutePath, "cpuset.cpus"), []byte(resource.CpuSet), 0644); err != nil {
+		if err = os.WriteFile(path.Join(absolutePath, "cpuset.mems"), []byte(resource.CpuSet), 0644); err != nil {
 			return errors.New("cpuset set falied,error:" + err.Error())
 		}
 	}
@@ -49,7 +49,7 @@ func (c *CpusetSubsystem) Remove(cgroupPath string) error {
 	if err != nil {
 		return err
 	}
-	err = os.Remove(absolutePath)
+	err = os.RemoveAll(absolutePath)
 	if err != nil {
 		return err
 	}

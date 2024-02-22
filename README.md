@@ -116,7 +116,9 @@ func GetCgroupAbsolutePath(subsys string, cgroupPath string, autoCreate bool) (s
 ~~~
 找到了cgroup挂载的绝对路径，就可以通过操作文件来进行资源限制,这里以memory为例：
 通过set方法，将设置的内存资源限制写入memory.limit_in_bytes文件中；
-通过apply方法，把pid写入到tasks，目标进程加入到该cgroup中；
+
+通过apply方法，把pid写入到tasks，目标进程加入到该cgroup中(！！！这里必须要注意，如果你在set中写入的数据格式不争取，是无法将pid写入tasks的)；
+
 通过remove方法，则是取消该cgroup
 ~~~go
 // 设置对应的cgroup memory限制
@@ -177,8 +179,125 @@ pivot_root系统调用介绍：
 pivot_root与chroot区别：
 - chroot只改变某个进程的根目录，系统的其他部分依旧运行于旧的root目录。 pivot_root把整个系统切换到一个新的root目录中，然后去掉对之前rootfs的依赖，以便于可以umount之前的文件系统。
 
-##
-to be continue...
+
+项目中使用privot_root系统调用的函数：
+~~~go
+// pivotRoot 进行pivot_root系统调用
+func pivotRoot(root string )error{
+	
+	//为了使当前root文件系统的老root文件系统和新root文件系统不在同一个文件系统下，这里把root重新mount一次
+	//bind mount 就是把相同的内容换一个挂载点的挂载方式
+	err := syscall.Mount(root,root,"bind",syscall.MS_BIND |syscall.MS_REC,"")
+	if err != nil{
+		return errors.New("Mount rootfs to itself failed,error:"+err.Error())
+	}
+	//存储旧root文件系统
+	pivotDir := filepath.Join(root,".pivot_root")
+	err = os.Mkdir(pivotDir,0777)
+	if err != nil{
+		return err
+	}
+	//root 为新root文件系统，pivotDir代表put_old文件夹，将旧root文件系统放在pivotDir文件夹中
+	err = syscall.PivotRoot(root,pivotDir)
+	if err != nil {
+		return errors.New("pivot_root,error :"+err.Error())
+	}
+	err = syscall.Chdir("/")
+	if err != nil{
+		return errors.New("chdir,error:"+err.Error())
+	}
+	//此时的pivotDir就是刚刚存放旧的root文件系统的文件夹
+	pivotDir = filepath.Join("/",".pivot_root")
+	err = syscall.Unmount(pivotDir,syscall.MNT_DETACH)
+	if err != nil{
+		return errors.New("umount pivot_roo5t directory failed ,error :"+err.Error())
+	}
+	return os.Remove(pivotDir)
+}
+~~~
+
+再将原先在InitProcess函数中进行mount操作移到setUpMount函数中，同时进行pivot_root：
+~~~go
+func setUpMount(){
+	pwd ,err := os.Getwd()
+	if err != nil{
+		log.Println("get current location error:"+err.Error())
+		return 
+	}
+	log.Println("the current location is "+pwd)
+	err = pivotRoot(pwd)
+	if err != nil{
+		log.Println("pivot_root system call failed")
+	}
+	err = syscall.Mount("","/","",syscall.MS_REC | syscall.MS_PRIVATE,"")
+	if err != nil{
+		log.Println("the first mount failed,error:",err.Error())
+	}
+	//mount proc
+	defaultMountFlag := syscall.MS_NODEV | syscall.MS_NOSUID | syscall.MS_NOEXEC 
+	// 这里的 MountFlag 的意思如下。
+	// 1. MS_NOEXEC在本文件系统中不允许运行其他程序。
+	// 2. MS_NOSUID在本系统中运行程序的时候， 不允许 set-user-ID或 set-group-ID。
+	// 3. MS_NODEV这个参数是自从Linux2.4以来，所有mount的系统都会默认设定的参数。
+	syscall.Mount("proc","/proc","proc",uintptr(defaultMountFlag),"")
+	//mount tmpfs
+	syscall.Mount("tmpfs","/dev","tmpfs",syscall.MS_NOSUID | syscall.MS_STRICTATIME,"mode=755")
+}
+~~~
+这里挂载到/，可以使后面挂载的/proc在退出容器时自动umount /proc,因为这样可以声明这个新的mount namespace独立
+
+
+
+现在InitProcess函数就是这个样子：
+~~~go
+func InitProcess() error {
+
+	data := readUserCommand()
+	if  len(data) ==0 {
+		return errors.New("Run container get command failed")
+	}
+	setUpMount() //将mount封装
+	
+	log.Println("mount success")
+	//通过exec.LookPath找到命令在环境变量中路径
+	cmdpath, err := exec.LookPath(data[0])
+	if err != nil {
+		log.Println(data[0]," look path in PATH environment variable failed")
+		return err
+	}
+
+	err = syscall.Exec(cmdpath, data[0:], os.Environ())
+	//!!!最重要的操作
+	//syscall.Exec这个方法,
+	//其实最终调用了Kernel的intexecve(const char *filename,char *const argv[], char *const envp[]);
+	//这个系统函数。它的作用是执行当前 filename对应的程序。
+	//它会覆盖当前进程的镜像、数据和堆栈等信息，包括 PID， 这些都会被将要运行的进程覆盖掉。
+	//保证了我们进入容器之后，我们看到的第一个进程是我们指定的进程，因为之前的信息都被覆盖掉了
+	if err != nil {
+		log.Fatal("error :", err.Error())
+	}
+	log.Println("exec  success")
+	return nil
+}
+~~~
+
+完成后的结果就是这样：
+~~~bash
+/ # ps
+PID   USER     TIME  COMMAND
+    1 root      0:00 sh
+    7 root      0:00 ps
+/ # mount
+/dev/sdc on / type ext4 (rw,relatime,discard,errors=remount-ro,data=ordered)
+proc on /proc type proc (rw,nosuid,nodev,noexec,relatime)
+tmpfs on /dev type tmpfs (rw,nosuid,mode=755)
+/ # ls
+bin   dev   etc   home  proc  root  sys   tmp   usr   var
+~~~
+此时子进程就看不到父进程的mount信息，且rootfs切换成了我们设置的busybox
+
+
+
 
 ## 参考文档：
 https://blog.csdn.net/qq_53267860/article/details/131729601

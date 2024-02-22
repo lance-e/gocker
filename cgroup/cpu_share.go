@@ -44,7 +44,7 @@ func (c *CpuSubsystem) Remove(cgroupPath string) error {
 	if err != nil {
 		return errors.New("cpu remove failed,error:" + err.Error())
 	}
-	err = os.Remove(absolutePath)
+	err = os.RemoveAll(absolutePath)
 	if err != nil {
 		return errors.New("cpu remove failed,error:" + err.Error())
 	}

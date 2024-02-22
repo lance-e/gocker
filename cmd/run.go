@@ -54,7 +54,7 @@ func init() {
 	// runCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 	runCmd.Flags().BoolVarP(&i, "interactive", "i", true, "Keep STDIN open even if not attached")
 	runCmd.Flags().BoolVarP(&t, "tty", "t", true, "Allocate a pseudo-TTY")
-	runCmd.Flags().StringVarP(&resource.MemoryLimit,"memory","m","1024","set the memory limit ")
-	runCmd.Flags().StringVarP(&resource.CpuSet,"cpuset","","","the cpuset subsystem")
-	runCmd.Flags().StringVarP(&resource.CpuShare,"cpushare","","","the cpu share subsystem")
+	runCmd.Flags().StringVarP(&resource.MemoryLimit,"memory","m","1024m","set the memory limit ")
+	runCmd.Flags().StringVarP(&resource.CpuSet,"cpuset","","0-2","the cpuset subsystem")
+	runCmd.Flags().StringVarP(&resource.CpuShare,"cpushare","","1024","the cpu share subsystem")
 }
