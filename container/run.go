@@ -1,8 +1,8 @@
 package container
 
 import (
-	
 	"gocker/cgroup"
+	"gocker/overlay"
 	"io"
 	"log"
 	"os"
@@ -18,6 +18,7 @@ func Run(tty bool, command []string, resource *cgroup.ResouceConfig) {
 	if err := cmd.Start(); err != nil {
 		log.Fatal(err.Error())
 	}
+	defer overlay.DeleteWorkSpace()
 	//新建一个cgroup manager来进行资源管理
 	manager := cgroup.NewCgroupManager("gocker-cgroup")
 	defer manager.Destory()
@@ -81,7 +82,8 @@ func newparentProcess(tty bool) (*exec.Cmd, *os.File) {
 	}
 	//!!!在这里传入管道读取端的句柄
 	cmd.ExtraFiles = []*os.File{read} //该属性的意思是外带着其他的文件句柄来创建子进程,因为一个进程默认带着三个文件描述符，stdin，stdout，stderr
-	cmd.Dir = "/home/longxu/busybox" //使用cmd.Dir设置初始化后的工作目录
+	overlay.NewWorkSpace()
+	cmd.Dir = "/root/overlay/merged" //使用cmd.Dir设置初始化后的工作目录
 	return cmd, write
 }
 

@@ -35,7 +35,7 @@
 
 ##### union file system:
 
-把其他文件系统联合到一个联合挂载点的文件系统服务
+把其他文件系统联合到一个联合挂载点的文件系统服务，具有写时复制和联合挂载的特性
 
 - 现在docker多采用的是overlay2或者aufs
 
@@ -179,7 +179,7 @@ pivot_root系统调用介绍：
 pivot_root与chroot区别：
 - chroot只改变某个进程的根目录，系统的其他部分依旧运行于旧的root目录。 pivot_root把整个系统切换到一个新的root目录中，然后去掉对之前rootfs的依赖，以便于可以umount之前的文件系统。
 
-
+##### 1.使用busybox来构建极简镜像
 项目中使用privot_root系统调用的函数：
 ~~~go
 // pivotRoot 进行pivot_root系统调用
@@ -297,6 +297,40 @@ bin   dev   etc   home  proc  root  sys   tmp   usr   var
 ~~~
 此时子进程就看不到父进程的mount信息，且rootfs切换成了我们设置的busybox
 
+##### 2.使用union filesystem来包装镜像
+这里选择使用overlayFS，作为unionfs
+
+相较于aufs，overlayFS的优势：
+- 速度更快，aufs层数更多，性能损耗更大
+- 简单，overlay2只有两层，容器层upper和镜像层lower
+- overlay2加入了linux kernel
+
+相较于overlay驱动，overlay2驱动的优势：
+- overlay驱动只在一个lower overlayFS层之上，所以为了实现多层镜像需要大量的硬链接
+- overlay2驱动原生支持多个lower overlayFS
+
+组成：
+- lower：镜像层，存储镜像文件，且只能读不能写
+- upper：容器层，可读可写，写时复制时，就是将需要写入的文件复制到upper中，进行修改，后续就直接在复制的文件中修改
+- merged：挂载的文件，展示参与联合挂载的目录的文件
+- work：主要是用来保证操作的原子性
+
+通过命令来展示overlayFS的挂载,挂载前只有lower和upper中有文件，merged为空，挂载后merged展示了参与联合挂载的目录文件：
+~~~bash
+root@localhost:~/test# mount -t overlay overlay ./merged -o upperdir=./upper,lowerdir=./lower,workdir=./work
+root@localhost:~/test# ls
+lower  merged  upper  work
+root@localhost:~/test# tree
+.
+├── lower
+│   └── lll
+├── merged
+│   ├── lll
+│   └── uuu
+├── upper
+│   └── uuu
+└── work
+~~~
 
 
 
@@ -316,3 +350,11 @@ https://www.cnblogs.com/charlieroro/p/10281469.html
 https://access.redhat.com/documentation/zh-cn/red_hat_enterprise_linux/7/html/resource_management_guide/index
 
 https://waynerv.com/posts/container-fundamentals-filesystem-isolation-and-sharing/
+
+https://cloud.tencent.com/developer/article/1681523
+
+https://www.cnblogs.com/FengZeng666/p/14173906.html
+
+https://blog.csdn.net/luckyapple1028/article/details/78075358
+
+https://zhuanlan.zhihu.com/p/374924046
