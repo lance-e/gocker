@@ -225,13 +225,14 @@ func setUpMount(){
 		return 
 	}
 	log.Println("the current location is "+pwd)
-	err = pivotRoot(pwd)
-	if err != nil{
-		log.Println("pivot_root system call failed")
-	}
+	
 	err = syscall.Mount("","/","",syscall.MS_REC | syscall.MS_PRIVATE,"")
 	if err != nil{
 		log.Println("the first mount failed,error:",err.Error())
+	}
+	err = pivotRoot(pwd)
+	if err != nil{
+		log.Println("pivot_root system call failed")
 	}
 	//mount proc
 	defaultMountFlag := syscall.MS_NODEV | syscall.MS_NOSUID | syscall.MS_NOEXEC 
@@ -245,7 +246,7 @@ func setUpMount(){
 }
 ~~~
 这里挂载到/，可以使后面挂载的/proc在退出容器时自动umount /proc,因为这样可以声明这个新的mount namespace独立
-
+!!!:这个/挂载，必须要在所有挂载之前
 
 
 现在InitProcess函数就是这个样子：

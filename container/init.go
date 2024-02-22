@@ -82,14 +82,16 @@ func setUpMount(){
 		return 
 	}
 	log.Println("the current location is "+pwd)
-	err = pivotRoot(pwd)
-	if err != nil{
-		log.Println("pivot_root system call failed")
-	}
+	//注：这个/挂载，非常非常重要！！！
 	err = syscall.Mount("","/","",syscall.MS_REC | syscall.MS_PRIVATE,"")
 	if err != nil{
 		log.Println("the first mount failed,error:",err.Error())
 	}
+	err = pivotRoot(pwd)
+	if err != nil{
+		log.Println("pivot_root system call failed")
+	}
+	
 	//mount proc
 	defaultMountFlag := syscall.MS_NODEV | syscall.MS_NOSUID | syscall.MS_NOEXEC 
 	// 这里的 MountFlag 的意思如下。
