@@ -5,21 +5,30 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"strings"
 )
 
-func NewWorkSpace() {
-	_, err := os.Stat("/root/overlay")
+func NewWorkSpace(rootURL string, volume string) {
+	_, err := os.Stat(rootURL)
 	if os.IsNotExist(err) {
-		if err := os.Mkdir("/root/overlay", 0777); err != nil {
+		if err := os.Mkdir(rootURL, 0777); err != nil {
 			log.Println("can't create a new work space,error:", err.Error())
 			return
 		}
 
 	}
-	NewUpper("/root/overlay")
-	NewLower("/root/overlay")
-	NewWork("/root/overlay")
-	NewMerged("/root/overlay")
+	NewUpper(rootURL)
+	NewLower(rootURL)
+	NewWork(rootURL)
+	NewMerged(rootURL)
+	if volume != "" {
+		volumeslice := strings.Split(volume, ":")
+		if len(volumeslice) == 2 && volumeslice[0] != "" && volumeslice[1] != "" {
+			VolumeMount(rootURL, volumeslice)
+		} else {
+			log.Println("the params are not correct")
+		}
+	}
 }
 
 // 镜像层
@@ -111,4 +120,26 @@ func NewMerged(rootURL string) {
 	if err := cmd.Run(); err != nil {
 		log.Println("overlayFS mount failed ,error :", err)
 	}
+}
+
+func VolumeMount(rootURL string, volume []string) {
+	//创建宿主机目录
+	if err := os.Mkdir(volume[0], 0755); err != nil {
+		log.Println("the state of the ", volume[0], "in host is :", err.Error())
+	}
+
+	mergedPath := path.Join(rootURL, "merged")
+	target := path.Join(mergedPath, volume[1])
+	//创建容器目录
+	if err := os.Mkdir(target, 0755); err != nil {
+		log.Println("the state of the ", volume[1], "in container is :", err.Error())
+	}
+	cmd := exec.Command("mount", "-o", "bind", volume[0], target)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		log.Println("mount volume failed,error:", err.Error())
+		return
+	}
+	log.Printf("mount %s to %s successful!\n", volume[0], target)
 }

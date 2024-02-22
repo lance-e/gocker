@@ -5,12 +5,22 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"strings"
 )
 
-func DeleteWorkSpace(){
-	DeleteMerged("/root/overlay")
-	DeleteUpper("/root/overlay")
-	DeleteWork("/root/overlay")
+func DeleteWorkSpace(rootURL string,volume string){
+	if volume != ""{
+		volumeSlice:=strings.Split(volume,":")
+		if len(volumeSlice)==2  && volumeSlice[0] !=""&&volumeSlice[1] != ""{
+			if err := VolumeUnmount(path.Join(rootURL,"merged",volumeSlice[1]));err != nil{
+				log.Println("umount volume failed,error:",err)
+				return
+			}
+		}
+	}
+	DeleteMerged(rootURL)
+	DeleteUpper(rootURL)
+	DeleteWork(rootURL)
 }
 
 func DeleteMerged(rootURL string){
@@ -20,6 +30,7 @@ func DeleteMerged(rootURL string){
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run();err != nil{
 		log.Println("umount overlay failed")
+		return
 	}
 	log.Println("umount overlay successful...")
 	if err := os.RemoveAll(mergedPath);err != nil{
@@ -42,4 +53,15 @@ func DeleteWork(rootURL string){
 		log.Println("remove work diroctory failed")
 		return
 	}
+}
+func VolumeUnmount(target string)error{
+	cmd := exec.Command("umount",target)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run();err != nil{
+		log.Println("umount volume failed")
+		return err
+	}
+	log.Println("umount volume successful")
+	return nil
 }

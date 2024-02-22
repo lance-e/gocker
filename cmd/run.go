@@ -16,6 +16,7 @@ var (
 	t bool
 	i bool
 	resource cgroup.ResouceConfig
+	volume string
 )
 
 // runCmd represents the run command
@@ -36,7 +37,7 @@ to quickly create a Cobra application.`,
 		if i && t {
 			tty = true
 		}
-		container.Run(tty, args,&resource)
+		container.Run(tty, args,&resource,volume)
 	},
 }
 
@@ -57,4 +58,5 @@ func init() {
 	runCmd.Flags().StringVarP(&resource.MemoryLimit,"memory","m","1024m","set the memory limit ")
 	runCmd.Flags().StringVarP(&resource.CpuSet,"cpuset","","0-2","the cpuset subsystem")
 	runCmd.Flags().StringVarP(&resource.CpuShare,"cpushare","","1024","the cpu share subsystem")
+	runCmd.Flags().StringVarP(&volume,"volume","v","","the data volume")
 }
