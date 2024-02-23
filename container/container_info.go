@@ -20,6 +20,7 @@ type ContainerInfo struct {
 	CreateAtTime  string `json:"create_at_time"`
 	Command       string `json:"command"`
 	Status        string `json:"status"`
+	Volume string `json:"volume"`
 }
 
 var (
@@ -30,20 +31,21 @@ var (
 	ConfigName          = "config.json"
 )
 
-func RecordContainerInformation(containerName string, containerPid int, command []string) (string, error) {
-	id := randStringBytes(10)
+func RecordContainerInformation(containerName string, containerId string,containerPid int, command []string,volume string) (string, error) {
+	
 	createTime := time.Now().Format("2006-01-02 15:04:05")
-	if containerName == "" {
-		containerName = id
+	if containerId == "" {
+		containerId = RandStringBytes(10)
 	}
 	cmd := strings.Join(command, " ")
 	info := &ContainerInfo{
 		Pid:           strconv.Itoa(containerPid),
 		ContainerName: containerName,
-		ContainerId:   id,
+		ContainerId:   containerId,
 		CreateAtTime:  createTime,
 		Status:        RUNING,
 		Command:       cmd,
+		Volume: volume,
 	}
 	infoByte, err := json.Marshal(info)
 	if err != nil {
@@ -71,7 +73,7 @@ func RecordContainerInformation(containerName string, containerPid int, command 
 	log.Println("record the informaiton successful!")
 	return containerName, nil
 }
-func randStringBytes(n int) string {
+func RandStringBytes(n int) string {
 	num := "01234567890123456789"
 	by := make([]byte, n)
 	r := rand.New(rand.NewSource(time.Now().Unix()))
@@ -83,9 +85,10 @@ func randStringBytes(n int) string {
 
 func DeleteContainerInfo(containerName string){
 	location := fmt.Sprintf(DefaultInfoLocation,containerName)
-	dirPath := location+ConfigName
+	dirPath := location
 	if err := os.RemoveAll(dirPath);err != nil{
 		log.Println("can't delete the config file")
 	}
+	
 
 }

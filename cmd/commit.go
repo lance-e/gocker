@@ -13,11 +13,11 @@ var CommitCmd = &cobra.Command{
 	Short: "commit a container into image",
 	Long: "commit a container into image",
 	Run: func(cmd *cobra.Command, args []string) {
-		if len(args)<1 {
-			log.Println("miss the container name")
+		if len(args)<2 {
+			log.Println("miss the container name or the image name")
 			return
 		}
-		container.CommitContainer(args[0])
+		container.CommitContainer(args[0],args[1])
 	},
 }
 

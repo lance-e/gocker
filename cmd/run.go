@@ -20,6 +20,7 @@ var (
 	volume string
 	detach bool
 	name string
+	environment []string
 )
 
 // runCmd represents the run command
@@ -44,7 +45,13 @@ to quickly create a Cobra application.`,
 			log.Println("the tty and detach can't exist at the same time")
 			return
 		}
-		container.Run(tty, args,&resource,volume,name)
+		var id = ""
+		if name == ""{
+			name = container.RandStringBytes(10)
+			id =name
+		}
+		imageName := args[0]
+		container.Run(tty, imageName,args[1:],&resource,volume,name,id,environment)
 	},
 }
 
@@ -68,4 +75,5 @@ func init() {
 	runCmd.Flags().StringVarP(&volume,"volume","v","","the data volume")
 	runCmd.Flags().BoolVarP(&detach,"detach","d",false,"make the container detach")
 	runCmd.Flags().StringVarP(&name,"name","","","set the container name ")
+	runCmd.Flags().StringSliceVarP(&environment,"environment","e",[]string{},"set the environment variable")
 }

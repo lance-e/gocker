@@ -2,8 +2,10 @@ package container
 
 import (
 	"fmt"
+	"gocker/overlay"
 	"log"
 	"os"
+	"path"
 )
 
 func RemoveContainer(contaienrName string){
@@ -22,6 +24,7 @@ func RemoveContainer(contaienrName string){
 		log.Println("can't remove all the file and directory")
 		return
 	}
+	overlay.DeleteWorkSpace(path.Join(RootUrl,info.ContainerName),info.Volume)
 	log.Printf("remove %s successful",info.ContainerName)
-
+	
 }

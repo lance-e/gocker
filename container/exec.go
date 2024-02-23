@@ -27,9 +27,8 @@ func ExecContainer(containerName string, command []string) {
 	cmd.Stderr = os.Stderr
 	os.Setenv(ENV_EXEC_PID, pid)
 	os.Setenv(ENV_EXEC_CMD, cmdstr)
-	cmd.Env = append( os.Environ(),(pid))
-	cmd.Dir = "/root/overlay/merged"
-
+	cmd.Env = append( os.Environ(),getEnvByPid(pid)...)
+	cmd.Dir = fmt.Sprintf(MergedPath,containerName)
 	if err := cmd.Run(); err != nil {
 		log.Println("exec container failed, error:", err)
 	}

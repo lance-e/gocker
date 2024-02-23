@@ -1,51 +1,41 @@
 package overlay
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"os/exec"
 	"path"
-	"strings"
 )
 
-func NewWorkSpace(rootURL string, volume string) {
-	_, err := os.Stat(rootURL)
-	if os.IsNotExist(err) {
-		if err := os.Mkdir(rootURL, 0777); err != nil {
-			log.Println("can't create a new work space,error:", err.Error())
-			return
-		}
-
-	}
+func NewWorkSpace(rootURL string, volume string,imageName string) {
 	NewUpper(rootURL)
-	NewLower(rootURL)
+	NewLower(imageName)
 	NewWork(rootURL)
-	NewMerged(rootURL)
-	if volume != "" {
-		volumeslice := strings.Split(volume, ":")
-		if len(volumeslice) == 2 && volumeslice[0] != "" && volumeslice[1] != "" {
-			VolumeMount(rootURL, volumeslice)
-		} else {
-			log.Println("the params are not correct")
-		}
-	}
+	NewMerged(rootURL,imageName)
+
+	
+	MountVolume(rootURL,volume)
 }
 
 // 镜像层
-func NewLower(rootURL string) {
-	lowerPath := path.Join(rootURL, "lower")
+func NewLower(imageName string) {
+	lowerPath := path.Join("/root/overlay",imageName)
 	_, err := os.Stat(lowerPath)
 	if err == nil {
 		log.Println("lower is nolmal")
 
 	}
 	if os.IsNotExist(err) {
-		err = os.Mkdir(lowerPath, 0777)
+		err = os.MkdirAll(lowerPath, 0777)
 		if err != nil {
 			log.Println("can't create the lower,error:", err.Error())
 			return
 		}
-		if _, err := exec.Command("tar", "-xvf", path.Join("/root", "busybox.tar"), "-C", lowerPath).CombinedOutput(); err != nil {
+		image:= path.Join("/root", imageName+".tar")
+		fmt.Println(image)
+		fmt.Println(lowerPath)
+		if _, err := exec.Command("tar", "-xvf", image, "-C", lowerPath).CombinedOutput(); err != nil {
 			log.Println("can't tar the target file")
 			return
 		}
@@ -65,7 +55,7 @@ func NewUpper(rootURL string) {
 
 	}
 	if os.IsNotExist(err) {
-		err := os.Mkdir(upperPath, 0777)
+		err := os.MkdirAll(upperPath, 0777)
 		if err != nil {
 			log.Println("can't create the upper,error:", err.Error())
 			return
@@ -85,7 +75,7 @@ func NewWork(rootURL string) {
 
 	}
 	if os.IsNotExist(err) {
-		err := os.Mkdir(workPath, 0777)
+		err := os.MkdirAll(workPath, 0777)
 		if err != nil {
 			log.Println("can't create the work,error:", err.Error())
 			return
@@ -96,12 +86,12 @@ func NewWork(rootURL string) {
 	}
 
 }
-func NewMerged(rootURL string) {
+func NewMerged(rootURL string,imageName string) {
 	mergedPath := path.Join(rootURL, "merged")
 	_, err := os.Stat(mergedPath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			err := os.Mkdir(mergedPath, 0777)
+			err := os.MkdirAll(mergedPath, 0777)
 			if err != nil {
 				log.Println("can't create the merged ,error:", err.Error())
 				return
@@ -112,8 +102,7 @@ func NewMerged(rootURL string) {
 		}
 	}
 
-	dir := "upperdir=" + path.Join(rootURL, "upper") + ",lowerdir=" + path.Join(rootURL, "lower") + ",workdir=" + path.Join(rootURL, "work")
-	log.Println("the dir is :--->", dir)
+	dir := "upperdir=" + path.Join(rootURL, "upper") + ",lowerdir=" + path.Join("/root/overlay",imageName) + ",workdir=" + path.Join(rootURL, "work")
 	cmd := exec.Command("mount", "-o", dir, "-t", "overlay", "overlay", path.Join(rootURL, "merged"))
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -122,24 +111,3 @@ func NewMerged(rootURL string) {
 	}
 }
 
-func VolumeMount(rootURL string, volume []string) {
-	//创建宿主机目录
-	if err := os.Mkdir(volume[0], 0755); err != nil {
-		log.Println("the state of the ", volume[0], "in host is :", err.Error())
-	}
-
-	mergedPath := path.Join(rootURL, "merged")
-	target := path.Join(mergedPath, volume[1])
-	//创建容器目录
-	if err := os.Mkdir(target, 0755); err != nil {
-		log.Println("the state of the ", volume[1], "in container is :", err.Error())
-	}
-	cmd := exec.Command("mount", "-o", "bind", volume[0], target)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
-		log.Println("mount volume failed,error:", err.Error())
-		return
-	}
-	log.Printf("mount %s to %s successful!\n", volume[0], target)
-}

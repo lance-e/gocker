@@ -913,6 +913,42 @@ func RemoveContainer(contaienrName string){
 }
 ~~~
 
+##### 8.实现通过容器创建镜像
+现在我们的所有创建的容器都是挂载的同一个overlayFS，容器之间都会相互影响，所以我们需要给每个容器单独的文件系统
+更改的地方较多，这里我们不进行更改部分的展示，基本都是在原来的overlayFS的基础上：
+- 将每个容器对应的文件系统路径中增加容器名，例如/root/overlay/container1/merged
+- 将镜像层从原本的文件系统中抽离，实现镜像与容器的解耦， 删除文件系统就可以直接将整个目录删除，删除更彻底
+- 单独增加镜像层目录存放位置
+
+##### 9.实现上传环境变量
+增加了-e标签，来上传容器的环境变量
+newparentProcess函数中增加的：
+~~~go
+cmd.Env = append(os.Environ(),environment... )
+~~~
+os.Environ()为默认的环境变量，创建的容器也需要继承宿主机上的环境变量
+
+在后台容器的模式下，exec进程的环境变量继承了父进程的环境变量，所以直接在environ文件中获取
+~~~go
+func ExecContainer(containerName string, command []string) {
+...
+cmd.Env = append( os.Environ(),getEnvByPid(pid)...)
+...
+}
+
+func getEnvByPid(pid string)[]string {
+	dir := fmt.Sprintf("/proc/%s/environ", pid)
+	data, err := os.ReadFile(dir)
+	if err != nil {
+		log.Println("can't read the environ file")
+		return nil
+	}
+	return strings.Split(string(data), "\u0000")
+
+}
+~~~
+
+
 
 ## 参考文档：
 https://blog.csdn.net/qq_53267860/article/details/131729601
