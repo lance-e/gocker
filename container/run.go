@@ -3,19 +3,21 @@ package container
 import (
 	"fmt"
 	"gocker/cgroup"
+	"gocker/network"
 	"gocker/overlay"
 	"io"
 	"log"
 	"os"
 	"os/exec"
 	"path"
+	"strconv"
 	"strings"
 	"syscall"
 )
 const RootUrl = "/root/overlay"
 const MergedPath = "/root/overlay/%s/merged"
 
-func Run(tty bool,imageName string, command []string, resource *cgroup.ResouceConfig, volume string, containerName string,containerId string,environment []string) {
+func Run(tty bool,imageName string, command []string, resource *cgroup.ResouceConfig, volume string, containerName string,containerId string,environment []string,net string,port []string) {
 	//原本启动init进程是通过在参数中添加一个init，来进行init命令，改成通过匿名管道进行父子进程间通信
 	cmd, write := newparentProcess(tty, volume,containerName,imageName,environment)
 	if cmd ==nil{
@@ -31,13 +33,19 @@ func Run(tty bool,imageName string, command []string, resource *cgroup.ResouceCo
 		log.Println("can't record container information ")
 		return
 	}
-
-
 	//新建一个cgroup manager来进行资源管理
 	manager := cgroup.NewCgroupManager("gocker-cgroup")
 	defer manager.Destory()
 	manager.Set(resource)
 	manager.Apply(cmd.Process.Pid)
+	
+	if net != ""{
+		network.Init()
+		if err := network.Connect(net,containerId,strconv.Itoa(cmd.Process.Pid),port);err != nil{
+			log.Println("can't connect the network,error:",err)
+		}
+	}
+
 	sendInitCommand(command, write)
 	if tty {
 		cmd.Wait() //父进程等待子进程

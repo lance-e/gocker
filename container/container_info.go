@@ -21,6 +21,7 @@ type ContainerInfo struct {
 	Command       string `json:"command"`
 	Status        string `json:"status"`
 	Volume string `json:"volume"`
+	PortMapping []string `json:"portmapping"`
 }
 
 var (

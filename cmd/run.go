@@ -21,6 +21,8 @@ var (
 	detach bool
 	name string
 	environment []string
+	net string
+	port []string
 )
 
 // runCmd represents the run command
@@ -50,8 +52,9 @@ to quickly create a Cobra application.`,
 			name = container.RandStringBytes(10)
 			id =name
 		}
+		
 		imageName := args[0]
-		container.Run(tty, imageName,args[1:],&resource,volume,name,id,environment)
+		container.Run(tty, imageName,args[1:],&resource,volume,name,id,environment,net,port)
 	},
 }
 
@@ -76,4 +79,6 @@ func init() {
 	runCmd.Flags().BoolVarP(&detach,"detach","d",false,"make the container detach")
 	runCmd.Flags().StringVarP(&name,"name","","","set the container name ")
 	runCmd.Flags().StringSliceVarP(&environment,"environment","e",[]string{},"set the environment variable")
+	runCmd.Flags().StringVarP(&net,"network","","","bind the target net")
+	runCmd.Flags().StringSliceVarP(&port,"port","p",[]string{},"publish a container's ports to the host")
 }
