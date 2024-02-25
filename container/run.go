@@ -77,7 +77,7 @@ func readUserCommand() []string {
 }
 func sendInitCommand(cmdArray []string, write *os.File) {
 	command := strings.Join(cmdArray, " ")
-	log.Println("send init command ,all is :", command)
+	//log.Println("send init command ,all is :", command)
 	write.WriteString(command)
 	write.Close()
 }
@@ -102,7 +102,7 @@ func newparentProcess(tty bool, volume string,containerName string,imageName str
 		//syscall.CLONE_NEWUSER,
 	}
 	//系统调用，简单实现docker的六种namespace隔离
-	log.Println("the tty is ", tty)
+	//log.Println("the tty is ", tty)
 	if tty {
 		cmd.Stdin = os.Stdin
 		cmd.Stdout = os.Stdout

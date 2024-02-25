@@ -6,6 +6,7 @@ import (
 	"net"
 	"os/exec"
 	"strings"
+	"time"
 
 	"github.com/vishvananda/netlink"
 )
@@ -119,23 +120,31 @@ func createBridgeInterface(name string)error{
 }
 
 
-
-
-func setInterfaceIP(name string ,ip string)error{
-	i ,err := netlink.LinkByName(name)
-	if err != nil{
-		log.Println(err)
+// Set the IP addr of a netlink interface
+func setInterfaceIP(name string, rawIP string) error {
+	retries := 2
+	var iface netlink.Link
+	var err error
+	for i := 0; i < retries; i++ {
+		iface, err = netlink.LinkByName(name)
+		fmt.Println(name)
+		if err == nil {
+			break
+		}
+		log.Printf("error retrieving new bridge netlink link [ %s ]... retrying\n", name)
+		time.Sleep(2*time.Second)
+	}
+	if err != nil {
+		return fmt.Errorf("abandoning retrieving the new bridge link from netlink, Run [ ip link ] to troubleshoot the error: %v", err)
+	}
+	ipNet, err := netlink.ParseIPNet(rawIP)
+	if err != nil {
 		return err
 	}
-	ipNet ,err := netlink.ParseIPNet(ip)
-	if err != nil{
-		return err
-	}
-
-	//给网络接口配置地址
-	addr := &netlink.Addr{IPNet: ipNet,Label: "",Flags: 0,Scope: 0}
-	return netlink.AddrAdd(i,addr)
+	addr := &netlink.Addr{IPNet: ipNet, Peer: ipNet, Label: "", Flags: 0, Scope: 0, Broadcast: nil}
+	return netlink.AddrAdd(iface, addr)
 }
+
 
 func setInterfaceUp(name string)error{
 	i ,err := netlink.LinkByName(name)

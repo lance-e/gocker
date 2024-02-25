@@ -22,10 +22,10 @@ func NewWorkSpace(rootURL string, volume string,imageName string) {
 func NewLower(imageName string) {
 	lowerPath := path.Join("/root/overlay",imageName)
 	_, err := os.Stat(lowerPath)
-	if err == nil {
-		log.Println("lower is nolmal")
+	// if err == nil {
+	// 	log.Println("lower is normal")
 
-	}
+	// }
 	if os.IsNotExist(err) {
 		err = os.MkdirAll(lowerPath, 0777)
 		if err != nil {
@@ -50,10 +50,10 @@ func NewLower(imageName string) {
 func NewUpper(rootURL string) {
 	upperPath := path.Join(rootURL, "upper")
 	_, err := os.Stat(upperPath)
-	if err == nil {
-		log.Println("upper already exists")
+	// if err == nil {
+	// 	log.Println("upper already exists")
 
-	}
+	// }
 	if os.IsNotExist(err) {
 		err := os.MkdirAll(upperPath, 0777)
 		if err != nil {
@@ -70,10 +70,10 @@ func NewUpper(rootURL string) {
 func NewWork(rootURL string) {
 	workPath := path.Join(rootURL, "work")
 	_, err := os.Stat(workPath)
-	if err == nil {
-		log.Println("work already exists")
+	// if err == nil {
+	// 	log.Println("work already exists")
 
-	}
+	// }
 	if os.IsNotExist(err) {
 		err := os.MkdirAll(workPath, 0777)
 		if err != nil {

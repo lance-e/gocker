@@ -55,7 +55,7 @@ func RecordContainerInformation(containerName string, containerId string,contain
 	}
 
 	location := fmt.Sprintf(DefaultInfoLocation, containerName)
-	log.Println("the location is ", location)
+	// log.Println("the location is ", location)
 	if err := os.MkdirAll(location, 0622); err != nil {
 		return "", err
 	}
@@ -71,7 +71,7 @@ func RecordContainerInformation(containerName string, containerId string,contain
 		log.Println("can't write the byte of information into the target file")
 		return "", err
 	}
-	log.Println("record the informaiton successful!")
+	//log.Println("record the informaiton successful!")
 	return containerName, nil
 }
 func RandStringBytes(n int) string {

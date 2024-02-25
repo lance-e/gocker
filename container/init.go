@@ -19,7 +19,7 @@ func InitProcess() error {
 	}
 	setUpMount() //将mount封装
 	
-	log.Println("mount success")
+	//log.Println("mount success")
 	//通过exec.LookPath找到命令在环境变量中路径
 	cmdpath, err := exec.LookPath(data[0])
 	if err != nil {
@@ -37,7 +37,7 @@ func InitProcess() error {
 	if err != nil {
 		log.Fatal("error :", err.Error())
 	}
-	log.Println("exec  success")
+	//log.Println("exec  success")
 	return nil
 }
 

@@ -70,5 +70,5 @@ func init() {
 	NetworkCmd.AddCommand(RemoveNetworkCmd)
 
 	CreateNetworkCmd.Flags().StringVarP(&driver, "driver", "", "bridge", "the network driver")
-	CreateNetworkCmd.Flags().StringVarP(&subnet, "subnet", "", "","the subnet for your network")
+	CreateNetworkCmd.Flags().StringVarP(&subnet, "subnet", "", "192.168.0.0/24","the subnet for your network")
 }
